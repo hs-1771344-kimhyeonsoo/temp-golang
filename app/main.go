@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 	"net"
 
 	_movieDelivery "github.com/null-like/movie-backend/movie/delivery"
@@ -43,7 +42,7 @@ func init() {
 	initLogger()
 	initConfig()
 	env = os.Args[1]
-	db = initDBConnection()
+	db = initDBConnectionServer()
 }
 
 func initLogger() {
@@ -69,51 +68,13 @@ func initConfig() {
 	}
 }
 
-func initDBConnection() *sql.DB {
-	var agentClient agent.Agent
-
-	if conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
-		//defer conn.Close()
-		agentClient = agent.NewClient(conn)
-	}
-
-	sshConfig := &ssh.ClientConfig{
-		User:            viper.GetString("ssh.user"),
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Auth:            []ssh.AuthMethod{},
-	}
-
-	if agentClient != nil {
-		sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeysCallback(agentClient.Signers))
-	}
-
-	sshPass := viper.GetString("ssh.pass")
-	if sshPass != "" {
-		sshConfig.Auth = append(sshConfig.Auth, ssh.PasswordCallback(func() (string, error) {
-			return sshPass, nil
-		}))
-	}
-
-	sshHost := viper.GetString("ssh.host")
-	sshPort := viper.GetInt("ssh.port")
-	sshcon, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", sshHost, sshPort), sshConfig)
-	if err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
-
-	mysql.RegisterDialContext("mysql+tcp", func(_ context.Context, addr string) (net.Conn, error) {
-		dialer := &ViaSSHDialer{sshcon}
-		return dialer.Dial(addr)
-	})
-
+func initDBConnectionServer() *sql.DB {
 	conf := mysql.NewConfig()
 	conf.User = viper.GetString("movie_db.user")
 	conf.Passwd = viper.GetString("movie_db.pass")
-	conf.Net = "mysql+tcp"
+	conf.Net = "tcp"
 	conf.Addr = viper.GetString("movie_db.host")
 	conf.ParseTime = true
-
 	DB, err := sql.Open("mysql", conf.FormatDSN())
 	if err != nil {
 		log.Error(err)
@@ -134,6 +95,64 @@ func initDBConnection() *sql.DB {
 	return DB
 }
 
+/*
+	func initDBConnection() *sql.DB {
+		var agentClient agent.Agent
+		if conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
+			//defer conn.Close()
+			agentClient = agent.NewClient(conn)
+		}
+		sshConfig := &ssh.ClientConfig{
+			User:            viper.GetString("ssh.user"),
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Auth:            []ssh.AuthMethod{},
+		}
+		if agentClient != nil {
+			sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeysCallback(agentClient.Signers))
+		}
+		sshPass := viper.GetString("ssh.pass")
+		if sshPass != "" {
+			sshConfig.Auth = append(sshConfig.Auth, ssh.PasswordCallback(func() (string, error) {
+				return sshPass, nil
+			}))
+		}
+		sshHost := viper.GetString("ssh.host")
+		sshPort := viper.GetInt("ssh.port")
+		sshcon, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", sshHost, sshPort), sshConfig)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+		mysql.RegisterDialContext("mysql+tcp", func(_ context.Context, addr string) (net.Conn, error) {
+			dialer := &ViaSSHDialer{sshcon}
+			return dialer.Dial(addr)
+		})
+		conf := mysql.NewConfig()
+		conf.User = viper.GetString("movie_db.user")
+		conf.Passwd = viper.GetString("movie_db.pass")
+		conf.Net = "mysql+tcp"
+		conf.Addr = viper.GetString("movie_db.host")
+		conf.ParseTime = true
+		DB, err := sql.Open("mysql", conf.FormatDSN())
+		if err != nil {
+			log.Error(err)
+			DB.Close()
+			os.Exit(1)
+		}
+		const shortDuration = 1 * time.Second
+		d := time.Now().Add(shortDuration)
+		ctx, cancel := context.WithDeadline(context.TODO(), d)
+		defer cancel()
+		err = DB.PingContext(ctx)
+		if err != nil {
+			log.Error(err)
+			DB.Close()
+			os.Exit(1)
+		}
+		schemaMap = viper.GetStringMapString(fmt.Sprintf("movie_db.schema.%s", env))
+		return DB
+	}
+*/
 func main() {
 	e := echo.New()
 	if env == "development" {
