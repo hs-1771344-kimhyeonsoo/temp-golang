@@ -1,0 +1,25 @@
+{
+  "context": {
+    "timeout": 15
+  },
+  "server": {
+    "address": ":12345"
+  },
+  "ssh": {
+    "host": "106.10.37.71",
+    "port": 12345,
+    "user": "root",
+    "pass": "G45!bb2La+t"
+  },
+  "movie_db": {
+    "host": "127.0.0.1:3306",
+    "user": "root",
+    "pass": "hs1234",
+    "schema": {
+      "development": {
+        "movie": "movie_db",
+        "user": "user"
+      }
+    }
+  }
+}
