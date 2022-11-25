@@ -282,8 +282,8 @@ func (r *mariaDBUserRepository) DeleteFavorite(ctx context.Context, userId int, 
 
 func (r *mariaDBUserRepository) InsertRating(ctx context.Context, userId int, movieId int, rating int, mediaType string) error {
 	query := fmt.Sprintf(`
-		INSERT INTO %s.Rate VALUES (%d, %d, %d, '%s')
-		ON DUPLICATE KEY UPDATE rating = VALUES(rating);
+		INSERT INTO %s.Rate VALUES (%d, %d, %d, '%s', now())
+		ON DUPLICATE KEY UPDATE rating = VALUES(rating), apply_date = VALUES(apply_date);
 		`,
 		r.schemaMap["movie"],
 		userId,
@@ -327,7 +327,7 @@ func (r *mariaDBUserRepository) FindRatingByMovieId(ctx context.Context, userId 
 
 func (r *mariaDBUserRepository) FindRatingsByUserId(ctx context.Context, userId int) ([]userDomain.Rate, error) {
 	query := fmt.Sprintf(`
-		SELECT movie_id, rating, type
+		SELECT movie_id, rating, type, apply_date
 		FROM %s.Rate
 		WHERE user_id = %d;
 		`,
@@ -351,7 +351,7 @@ func (r *mariaDBUserRepository) FindRatingsByUserId(ctx context.Context, userId 
 	var movieRatings []userDomain.Rate
 	for rows.Next() {
 		var movieRating userDomain.Rate
-		err = rows.Scan(&movieRating.Id, &movieRating.Rating, &movieRating.Type)
+		err = rows.Scan(&movieRating.Id, &movieRating.Rating, &movieRating.Type, &movieRating.ApplyDate)
 		if err != nil {
 			r.logger.Error(err)
 			return nil, err
@@ -387,7 +387,7 @@ func (r *mariaDBUserRepository) AllPlaylist(ctx context.Context) ([]userDomain.P
 	var playlists []userDomain.Playlist
 	for rows.Next() {
 		var playlist userDomain.Playlist
-		err = rows.Scan(&playlist.Id, &playlist.Name, &playlist.Playlist)
+		err = rows.Scan(&playlist.Id, &playlist.Name, &playlist.Playlist, &playlist.Type)
 		if err != nil {
 			r.logger.Error(err)
 			return nil, err
@@ -420,13 +420,14 @@ func (r *mariaDBUserRepository) InsertPlaylist(ctx context.Context, id int, name
 	return nil
 }
 
-func (r *mariaDBUserRepository) InsertPlaylist2(ctx context.Context, name string, playlist string) error {
+func (r *mariaDBUserRepository) InsertPlaylist2(ctx context.Context, name string, playlist string, mediaType string) error {
 	query := fmt.Sprintf(`
-		INSERT INTO %s.Playlist (name, list) VALUES ('%s', '%s');
+		INSERT INTO %s.Playlist (name, list, type) VALUES ('%s', '%s', '%s');
 		`,
 		r.schemaMap["movie"],
 		name,
 		playlist,
+		mediaType,
 	)
 	r.logger.Debug(query)
 

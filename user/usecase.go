@@ -21,6 +21,6 @@ type Usecase interface {
 	GetChangedRatingList(ctx context.Context, userId int, movieId int, rating int, mediaType string) ([]userDomain.Rate, error)
 	GetAllPlaylists(ctx context.Context) ([]userDomain.Playlist, error)
 	ChangePlaylistAndGetAllPlaylists(ctx context.Context, id int, title string, playlist string) ([]userDomain.Playlist, error)
-	AddPlaylistAndGetAllPlaylists(ctx context.Context, name string, playlist string) ([]userDomain.Playlist, error)
+	AddPlaylistAndGetAllPlaylists(ctx context.Context, name string, playlist string, mediaType string) ([]userDomain.Playlist, error)
 	DeletePlaylistAndGetAllPlaylists(ctx context.Context, id int) ([]userDomain.Playlist, error)
 }

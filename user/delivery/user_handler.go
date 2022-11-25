@@ -271,8 +271,9 @@ func (h *userHandler) SendAddedPlaylists(c echo.Context) error {
 	params := c.QueryParams()
 	name := params.Get("name")
 	playlist := params.Get("playlist")
+	mediaType := params.Get("type")
 
-	playlists, err := h.Usecase.AddPlaylistAndGetAllPlaylists(ctx, name, playlist)
+	playlists, err := h.Usecase.AddPlaylistAndGetAllPlaylists(ctx, name, playlist, mediaType)
 	if err != nil {
 		h.logger.Error(err)
 		return c.JSON(http.StatusOK, nil)

@@ -22,6 +22,6 @@ type Repository interface {
 	FindRatingsByUserId(ctx context.Context, userId int) ([]userDomain.Rate, error)
 	AllPlaylist(ctx context.Context) ([]userDomain.Playlist, error)
 	InsertPlaylist(ctx context.Context, id int, title string, playlist string) error
-	InsertPlaylist2(ctx context.Context, name string, playlist string) error
+	InsertPlaylist2(ctx context.Context, name string, playlist string, mediaType string) error
 	DeletePlaylist(ctx context.Context, id int) error
 }

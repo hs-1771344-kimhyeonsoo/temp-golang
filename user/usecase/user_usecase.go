@@ -209,8 +209,8 @@ func (u *userUsecase) ChangePlaylistAndGetAllPlaylists(ctx context.Context, id i
 	return playlists, nil
 }
 
-func (u *userUsecase) AddPlaylistAndGetAllPlaylists(ctx context.Context, name string, playlist string) ([]userDomain.Playlist, error) {
-	err := u.userRepo.InsertPlaylist2(ctx, name, playlist)
+func (u *userUsecase) AddPlaylistAndGetAllPlaylists(ctx context.Context, name string, playlist string, mediaType string) ([]userDomain.Playlist, error) {
+	err := u.userRepo.InsertPlaylist2(ctx, name, playlist, mediaType)
 	if err != nil {
 		u.logger.Error(err)
 		return nil, err
