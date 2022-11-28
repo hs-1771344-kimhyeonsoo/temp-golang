@@ -1,6 +1,7 @@
 package delivery
 
 import (
+	"encoding/json"
 	"github.com/labstack/echo/v4"
 	UserDomain "github.com/null-like/movie-backend/domain/user"
 	"github.com/null-like/movie-backend/user"
@@ -26,7 +27,7 @@ func NewUserHandler(g *echo.Group, u user.Usecase, logger *logrus.Logger) {
 
 	g.POST("/sign-up", handler.SignUp)
 	g.POST("/sign-in", handler.SignIn)
-	g.POST("/check", handler.CheckDuplicates)
+	g.GET("/check", handler.CheckDuplicates)
 	g.GET("/all-user", handler.SendAllUser)
 	g.GET("/delete-user", handler.SendDeletedAllUser)
 	g.GET("/update-user", handler.SendUpdatedAllUser)
@@ -41,17 +42,33 @@ func NewUserHandler(g *echo.Group, u user.Usecase, logger *logrus.Logger) {
 	g.GET("/add-playlist", handler.SendAddedPlaylists)
 	g.GET("/change-playlist", handler.SendChangedPlaylists)
 	g.GET("/delete-playlist", handler.SendDeletedPlaylists)
+	g.GET("/banner", handler.SendAllBanners)
+	g.GET("/change-banner", handler.SendUpdatedBanners)
+	g.GET("/add-banner", handler.SendAddedBanners)
+	g.GET("/delete-banner", handler.SendDeletedBanners)
+}
+
+type SignUpUser struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Nickname string `json:"nickname"`
+}
+
+type SignInUser struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (h *userHandler) SignUp(c echo.Context) error {
 	ctx := c.Request().Context()
-
-	params := c.QueryParams()
-
+	body := c.Request().Body
+	dec := json.NewDecoder(body)
+	u := SignUpUser{}
+	dec.Decode(&u)
 	user := UserDomain.User{
-		Email:    params.Get("email"),
-		Password: params.Get("password"),
-		Nickname: params.Get("nickname"),
+		Email:    u.Email,
+		Password: u.Password,
+		Nickname: u.Nickname,
 	}
 
 	err := h.Usecase.RegisterUser(ctx, user)
@@ -77,8 +94,12 @@ func (h *userHandler) CheckDuplicates(c echo.Context) error {
 
 func (h *userHandler) SignIn(c echo.Context) error {
 	ctx := c.Request().Context()
-	params := c.QueryParams()
-	userInfo, err := h.Usecase.AuthUser(ctx, params.Get("email"), params.Get("password"))
+	body := c.Request().Body
+	dec := json.NewDecoder(body)
+	u := SignInUser{}
+	dec.Decode(&u)
+
+	userInfo, err := h.Usecase.AuthUser(ctx, u.Email, u.Password)
 
 	if err != nil {
 		h.logger.Error(err)
@@ -294,4 +315,65 @@ func (h *userHandler) SendDeletedPlaylists(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, playlists)
+}
+
+func (h *userHandler) SendAllBanners(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	banners, err := h.Usecase.GetAllBanners(ctx)
+	if err != nil {
+		h.logger.Error(err)
+		return c.JSON(http.StatusOK, nil)
+	}
+
+	return c.JSON(http.StatusOK, banners)
+}
+
+func (h *userHandler) SendUpdatedBanners(c echo.Context) error {
+	ctx := c.Request().Context()
+	params := c.QueryParams()
+	id, _ := strconv.Atoi(params.Get("id"))
+	movieId, _ := strconv.Atoi(params.Get("movie_id"))
+	title := params.Get("title")
+	mediaType := params.Get("type")
+	comment := params.Get("comment")
+
+	banners, err := h.Usecase.UpdateAndGetAllBanners(ctx, id, movieId, title, mediaType, comment)
+	if err != nil {
+		h.logger.Error(err)
+		return c.JSON(http.StatusOK, nil)
+	}
+
+	return c.JSON(http.StatusOK, banners)
+}
+
+func (h *userHandler) SendAddedBanners(c echo.Context) error {
+	ctx := c.Request().Context()
+	params := c.QueryParams()
+	movieId, _ := strconv.Atoi(params.Get("movie_id"))
+	title := params.Get("title")
+	mediaType := params.Get("type")
+	comment := params.Get("comment")
+
+	banners, err := h.Usecase.AddAndGetAllBanners(ctx, movieId, title, mediaType, comment)
+	if err != nil {
+		h.logger.Error(err)
+		return c.JSON(http.StatusOK, nil)
+	}
+
+	return c.JSON(http.StatusOK, banners)
+}
+
+func (h *userHandler) SendDeletedBanners(c echo.Context) error {
+	ctx := c.Request().Context()
+	params := c.QueryParams()
+	id, _ := strconv.Atoi(params.Get("id"))
+
+	banners, err := h.Usecase.DeleteAndGetAllBanners(ctx, id)
+	if err != nil {
+		h.logger.Error(err)
+		return c.JSON(http.StatusOK, nil)
+	}
+
+	return c.JSON(http.StatusOK, banners)
 }

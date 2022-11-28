@@ -240,3 +240,61 @@ func (u *userUsecase) DeletePlaylistAndGetAllPlaylists(ctx context.Context, id i
 
 	return playlists, nil
 }
+
+func (u *userUsecase) GetAllBanners(ctx context.Context) ([]userDomain.Banner, error) {
+	banners, err := u.userRepo.AllBanner(ctx)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	return banners, nil
+}
+
+func (u *userUsecase) UpdateAndGetAllBanners(ctx context.Context, id int, movieId int, title string, mediaType string, comment string) ([]userDomain.Banner, error) {
+	err := u.userRepo.UpdateBanner(ctx, id, movieId, title, mediaType, comment)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	banners, err := u.userRepo.AllBanner(ctx)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	return banners, nil
+}
+
+func (u *userUsecase) AddAndGetAllBanners(ctx context.Context, movieId int, title string, mediaType string, comment string) ([]userDomain.Banner, error) {
+	err := u.userRepo.InsertBanner(ctx, movieId, title, mediaType, comment)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	banners, err := u.userRepo.AllBanner(ctx)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	return banners, nil
+}
+
+func (u *userUsecase) DeleteAndGetAllBanners(ctx context.Context, id int) ([]userDomain.Banner, error) {
+	err := u.userRepo.DeleteBanner(ctx, id)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	banners, err := u.userRepo.AllBanner(ctx)
+	if err != nil {
+		u.logger.Error(err)
+		return nil, err
+	}
+
+	return banners, nil
+}

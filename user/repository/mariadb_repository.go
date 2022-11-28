@@ -458,3 +458,102 @@ func (r *mariaDBUserRepository) DeletePlaylist(ctx context.Context, id int) erro
 
 	return nil
 }
+
+func (r *mariaDBUserRepository) AllBanner(ctx context.Context) ([]userDomain.Banner, error) {
+	query := fmt.Sprintf(`
+		SELECT *
+		FROM %s.Banner
+		`,
+		r.schemaMap["movie"],
+	)
+
+	rows, err := r.Conn.QueryContext(ctx, query)
+
+	if err != nil {
+		r.logger.Error(err)
+		return nil, err
+	}
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			r.logger.Error(err)
+		}
+	}()
+
+	var banners []userDomain.Banner
+	for rows.Next() {
+		var banner userDomain.Banner
+		err = rows.Scan(&banner.Id, &banner.MovieId, &banner.Title, &banner.Type, &banner.Comment)
+		if err != nil {
+			r.logger.Error(err)
+			return nil, err
+		}
+		banners = append(banners, banner)
+	}
+
+	r.logger.Debug(query)
+	return banners, nil
+}
+
+func (r *mariaDBUserRepository) UpdateBanner(ctx context.Context, id int, movieId int, title string, mediaType string, comment string) error {
+	query := fmt.Sprintf(`
+		INSERT INTO %s.Banner (id, movie_id, title, type, comment) VALUES (%d, %d, '%s', '%s', '%s')
+		ON DUPLICATE KEY UPDATE movie_id = VALUES(movie_id), title = VALUES(title), type = VALUES(type), comment = VALUES(comment);
+		`,
+		r.schemaMap["movie"],
+		id,
+		movieId,
+		title,
+		mediaType,
+		comment,
+	)
+	r.logger.Debug(query)
+
+	_, err := r.Conn.ExecContext(ctx, query)
+	if err != nil {
+		r.logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *mariaDBUserRepository) InsertBanner(ctx context.Context, movieId int, title string, mediaType string, comment string) error {
+	query := fmt.Sprintf(`
+		INSERT INTO %s.Banner (movie_id, title, type, comment) VALUES (%d, '%s', '%s', '%s');
+		`,
+		r.schemaMap["movie"],
+		movieId,
+		title,
+		mediaType,
+		comment,
+	)
+	r.logger.Debug(query)
+
+	_, err := r.Conn.ExecContext(ctx, query)
+	if err != nil {
+		r.logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *mariaDBUserRepository) DeleteBanner(ctx context.Context, id int) error {
+	query := fmt.Sprintf(`
+		DELETE FROM %s.Banner
+		WHERE id = %d;
+		`,
+		r.schemaMap["movie"],
+		id,
+	)
+	r.logger.Debug(query)
+
+	_, err := r.Conn.ExecContext(ctx, query)
+	if err != nil {
+		r.logger.Error(err)
+		return err
+	}
+
+	return nil
+}
